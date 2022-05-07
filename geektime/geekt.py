@@ -26,6 +26,9 @@ def fix_content_heading(content):
     content = re.sub(h2_end, '</h3>', content)
     return content
 
+def fix_filename(title):
+    return title.replace("/", "").replace("|", "-").replace("<", "‹").replace(">", "›").replace("?", "？").replace("\"", "'").replace("\x08", "").replace("*", "✳").replace(":", "：")
+
 
 class GeekT:
     def __init__(self, courses, token=os.getenv('GEEKT_TOKEN'), gcid=os.getenv('GEEKT_GCID'), base_dir='.', epub=True,
@@ -64,7 +67,7 @@ class GeekT:
         print(f'start {len(self.courses)} courses!')
         with ProcessPoolExecutor(max_workers=self.worker) as executor:
             self.completed = 0
-
+            
             for future in as_completed([executor.submit(self._trans_course, course) for course in self.courses]):
                 print(future.result(), flush=True)
                 self.completed += 1
@@ -141,7 +144,7 @@ css: './style.css'
 
         for idx, chapter in enumerate(chapters):
             chapter_name = chapter['title']
-            chapter_dir = os.path.join(course_dir, f'{idx}.{chapter_name.replace("/", "")}')
+            chapter_dir = os.path.join(course_dir, f'{idx}.{fix_filename(chapter_name)}')
             mkdir(chapter_dir)
             print(f'mkdir {chapter_dir}')
             # 3.6+ 是有序集合
@@ -166,12 +169,12 @@ css: './style.css'
         content = article['article_content']
         audio = article['audio_download_url']
         title = article['article_title']
-        filename = os.path.join(chapter_dir, f'{idx}.{title.replace("/", "")}')
+        filename = os.path.join(chapter_dir, f'{idx}.{fix_filename(title)}')
         if self.audio:
             write_bytes(f'{filename}.mp3', requests.get(audio).content)
         write_file(f'{filename}.html', content)
         markdown_file = markdownify.markdownify(html=f'<h2>{title}</h2>{fix_content_heading(content)}',
                                                 heading_style='ATX')
         write_file(f'{filename}.md', markdown_file)
-        sleep(randrange(1, 5))
+        sleep(randrange(5, 10))
         print(f'save lesson finish: {title}')
